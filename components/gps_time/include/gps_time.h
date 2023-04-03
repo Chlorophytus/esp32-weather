@@ -15,9 +15,11 @@
  */
 #pragma once
 
+#include "esp_log.h"
+
 #include <inttypes.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
@@ -34,7 +36,8 @@
 #define GPS_TIME_DATE_IS_CURRENT (((uint32_t)(1)) << 0)
 #define GPS_TIME_TIME_IS_CURRENT (((uint32_t)(1)) << 1)
 #define GPS_TIME_HAS_FIX (((uint32_t)(1)) << 2)
-#define GPS_TIME_READY (GPS_TIME_HAS_FIX | GPS_TIME_TIME_IS_CURRENT | GPS_TIME_DATE_IS_CURRENT)
+#define GPS_TIME_READY                                                         \
+  (GPS_TIME_HAS_FIX | GPS_TIME_TIME_IS_CURRENT | GPS_TIME_DATE_IS_CURRENT)
 
 #define GPS_TIME_MAX_SENTENCE_LENGTH 80
 #define GPS_TIME_UPDATE_INTERVAL 60
@@ -50,7 +53,6 @@ typedef struct {
   uint32_t status;
   uint32_t lag;
 } gps_time_t;
-
 
 // Dynamic allocation of gps_time_t structs
 void gps_time_init(gps_time_t **);
