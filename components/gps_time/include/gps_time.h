@@ -14,9 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 #pragma once
-
-#include "esp_log.h"
-
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -24,6 +21,8 @@
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
+
+#include "esp_log.h"
 
 #define GPS_TIME_SENTENCE_TYPE_GPGGA (((uint32_t)(1)) << 0)
 #define GPS_TIME_SENTENCE_TYPE_GPGLL (((uint32_t)(1)) << 1)
@@ -33,6 +32,7 @@
 #define GPS_TIME_SENTENCE_TYPE_GPVTG (((uint32_t)(1)) << 5)
 #define GPS_TIME_SENTENCE_TYPE_OTHER ((uint32_t)(0))
 
+#define GPS_TIME_NONE ((uint32_t)(0))
 #define GPS_TIME_DATE_IS_CURRENT (((uint32_t)(1)) << 0)
 #define GPS_TIME_TIME_IS_CURRENT (((uint32_t)(1)) << 1)
 #define GPS_TIME_HAS_FIX (((uint32_t)(1)) << 2)

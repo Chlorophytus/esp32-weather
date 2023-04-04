@@ -15,6 +15,8 @@
  */
 #include "weather_task_gps_time.h"
 
+static const char *TAG = "task_gps_time";
+
 void weather_task_gps_time_config(weather_task_gps_time_t *pointer) {
   gps_time_fill(&(pointer->data));
   pointer->uart_config = (uart_config_t){.baud_rate = 9600,
@@ -41,7 +43,7 @@ void weather_task_gps_time_task(void *user_data) {
   char *data_current = pointer->uart_buffer;
   while (1) {
     int len = uart_read_bytes(WEATHER_TASK_GPS_TIME_UART, data_current, 1,
-                              100 / portTICK_PERIOD_MS);
+                              10 / portTICK_PERIOD_MS);
     if (len == 1) {
       if (*data_current == '\n') {
         *data_current = '\0';

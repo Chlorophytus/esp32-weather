@@ -1,0 +1,7 @@
+menu "Root Project"
+    config WEATHER_MQTT_BROKER
+        string "The URL/address of the MQTT broker to use"
+    config WEATHER_MQTT_INTERVAL
+        int "Milliseconds per weather MQTT transmission"
+        default 15000
+endmenu

@@ -23,7 +23,7 @@ void gps_time_init(gps_time_t **pointer) {
 }
 
 void gps_time_fill(gps_time_t *pointer) {
-  pointer->status = 0;
+  pointer->status = GPS_TIME_NONE;
   pointer->lag = 0;
 }
 
