@@ -28,7 +28,7 @@ void gps_time_fill(gps_time_t *pointer) {
 }
 
 void gps_time_nmea_read(gps_time_t *pointer, const char *sentence) {
-  if (sentence[0] != '$') {
+  if (sentence[0] != '$' || !CONFIG_GPS_TIME_SYNC) {
     return;
   }
   uint32_t end = 0;
@@ -148,7 +148,7 @@ void gps_time_nmea_read(gps_time_t *pointer, const char *sentence) {
       ESP_LOGI(TAG, "Time of day will be set: %s", buf);
 
       settimeofday(&tval, NULL);
-      pointer->lag = GPS_TIME_UPDATE_INTERVAL;
+      pointer->lag = CONFIG_GPS_TIME_LAG;
     }
     (pointer->lag)--;
   }
