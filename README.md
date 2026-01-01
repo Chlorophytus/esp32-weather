@@ -3,10 +3,10 @@ Personal weather station. Tested with ESP-IDF release v5.5.2.
 
 ## Components
 
-- [Sparkfun Weather MicroMod carrier][weather-micromod]
-- [Sparkfun SAM-M8Q GPS breakout][gps-breakout]
-- [Sparkfun weather meters][weather-meters]
-- [Sparkfun ESP32 MicroMod processor][esp32-micromod]
+- [SparkFun Weather MicroMod carrier][weather-micromod]
+- [SparkFun SAM-M8Q GPS breakout][gps-breakout]
+- [SparkFun weather meters][weather-meters]
+- [SparkFun ESP32 MicroMod processor][esp32-micromod]
 
 ## Building
 

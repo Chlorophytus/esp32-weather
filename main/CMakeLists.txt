@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2025 Roland Metivier <metivier.roland@chlorophyt.us>
+# Copyright (c) 2023-2026 Roland Metivier <metivier.roland@chlorophyt.us>
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
