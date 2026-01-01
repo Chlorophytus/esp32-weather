@@ -1,5 +1,5 @@
 # ESP32 Weather
-Personal weather station. Tested with ESP-IDF release v5.0.1.
+Personal weather station. Tested with ESP-IDF release v5.5.2.
 
 ## Components
 

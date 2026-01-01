@@ -1,6 +1,6 @@
 menu "GPS Time Component"
     config GPS_TIME_SYNC
-        bool "Enable GPS time sync with Sparkfun SAM-M8Q"
+        bool "Enable GPS time sync with SparkFun SAM-M8Q"
         default y
         help
             When enabled, the firmware will periodically sync the time using

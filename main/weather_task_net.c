@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Roland Metivier <metivier.roland@chlorophyt.us>
+ * Copyright (c) 2023-2025 Roland Metivier <metivier.roland@chlorophyt.us>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,7 +25,7 @@ static void weather_task_net_event_handler(void *handler_args, esp_event_base_t 
 
   switch(idx) {
     case MQTT_EVENT_CONNECTED: {
-      esp_mqtt_client_subscribe(client, "/topic/status", 0);
+      esp_mqtt_client_subscribe(client, "weather/status", 0);
       mqtt_connected = 1;
       break;
     }
@@ -71,7 +71,7 @@ void weather_task_net_task(void *user_data) {
       cJSON *root = cJSON_CreateObject();
       cJSON_AddNumberToObject(root, "utc", time.tv_sec);
       char *str = cJSON_PrintUnformatted(root);
-      esp_mqtt_client_publish(client, "/topic/status", str, strlen(str), 0, 0);
+      esp_mqtt_client_publish(client, "weather/status", str, strlen(str), 0, 0);
       cJSON_Delete(root);
       vTaskDelay(CONFIG_WEATHER_MQTT_INTERVAL / portTICK_PERIOD_MS);
     }
