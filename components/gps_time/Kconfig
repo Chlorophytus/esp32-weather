@@ -4,7 +4,7 @@ menu "GPS Time Component"
         default y
         help
             When enabled, the firmware will periodically sync the time using
-            the GPS time that the Sparkfun SAM-M8Q GPS receiver receives.
+            the GPS time that the SparkFun SAM-M8Q GPS receiver receives.
     config GPS_TIME_LAG
         int "Number of valid GPS timestamps until setting the time of day"
         default 60
