@@ -4,4 +4,7 @@ menu "Root Project"
     config WEATHER_MQTT_INTERVAL
         int "Milliseconds per weather MQTT transmission"
         default 15000
+    config WEATHER_POLL_SENSORS_INTERVAL
+        int "Milliseconds per sensor poll"
+        default 15000
 endmenu

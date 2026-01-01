@@ -25,7 +25,7 @@
 typedef struct {
   gps_time_t data;
   uart_config_t uart_config;
-  char uart_buffer[1024];
+  char uart_buffer[512];
 } weather_task_gps_time_t;
 
 void weather_task_gps_time_config(weather_task_gps_time_t *);

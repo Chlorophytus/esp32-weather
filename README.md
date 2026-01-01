@@ -1,6 +1,9 @@
 # ESP32 Weather
 Personal weather station. Tested with ESP-IDF release v5.5.2.
 
+## To Do
+- Interface with BME280 (I2C: pin 21 is SDA, pin 22 is SCL)
+
 ## Components
 
 - [SparkFun Weather MicroMod carrier][weather-micromod]

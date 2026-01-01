@@ -14,18 +14,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 #pragma once
+#include "cJSON.h"
 #include "driver/uart.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/idf_additions.h"
 #include "freertos/task.h"
-#include "wireless.h"
-#include "sdkconfig.h"
+#include "iic_mux.h"
 #include "mqtt_client.h"
-#include "cJSON.h"
+#include "sdkconfig.h"
+#include "wireless.h"
 
 #include <sys/time.h>
 
 typedef struct {
   wireless_t *wifi;
+  iic_mux_t *i2c;
+  char json_cache[512];
 } weather_task_net_t;
 
 void weather_task_net_task(void *);
