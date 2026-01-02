@@ -55,9 +55,9 @@ void iic_mux_start(iic_mux_t *pointer) {
                                             &pointer->bme280_handle));
 
   ESP_LOGI(TAG, "Handling BME280 settings...");
-  const uint8_t write_iir[2] = {0xf5, 0b000000000};
-  ESP_ERROR_CHECK(i2c_master_transmit(pointer->bme280_handle, write_iir, 2, 500));
-
+  const uint8_t write_iir[2] = {0xf5, 0b000100000};
+  ESP_ERROR_CHECK(
+      i2c_master_transmit(pointer->bme280_handle, write_iir, 2, 500));
 
   ESP_LOGI(TAG, "Reading BME280 temperature calibration data...");
   const uint8_t read_dig_T[1] = {0x88};
@@ -102,8 +102,9 @@ void iic_mux_start(iic_mux_t *pointer) {
 void iic_mux_refresh(iic_mux_t *pointer) {
 #ifdef CONFIG_I2CMUX_BME280
   ESP_LOGI(TAG, "Handling BME280 now...");
-  const uint8_t write_oversampling[2] = {0xf4, 0b00100101};
-  ESP_ERROR_CHECK(i2c_master_transmit(pointer->bme280_handle, write_oversampling, 2, 500));
+  const uint8_t write_oversampling[2] = {0xf4, 0b10110101};
+  ESP_ERROR_CHECK(
+      i2c_master_transmit(pointer->bme280_handle, write_oversampling, 2, 500));
 
   const uint8_t read_temperature[1] = {0xFA};
   ESP_ERROR_CHECK(i2c_master_transmit_receive(
@@ -136,17 +137,16 @@ void iic_mux_refresh(iic_mux_t *pointer) {
   const uint16_t dig_T1 = pointer->bme280_temperature_coeff_1;
   const int16_t dig_T2 = pointer->bme280_temperature_coeffs[0];
   const int16_t dig_T3 = pointer->bme280_temperature_coeffs[1];
-  t_var1 =
-      ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * ((int32_t)dig_T2)) >> 11;
-  t_var2 = (((((adc_T >> 4) - ((int32_t)dig_T1)) *
-              ((adc_T >> 4) - ((int32_t)dig_T1))) >>
-             12) *
-            ((int32_t)dig_T3)) >>
-           14;
+  // https://github.com/boschsensortec/BME280_SensorAPI/blob/c90d419492e26dd95586598a794e65eb2760753a/bme280.c#L1247
+  t_var1 = ((adc_T / 8) - ((int32_t)dig_T1 * 2));
+  t_var1 = (t_var1 * ((int32_t)dig_T2)) / 2048;
+  t_var2 = ((adc_T / 16) - ((int32_t)dig_T1));
+  t_var2 = (((t_var2 * t_var2) / 4096) * ((int32_t)dig_T3)) / 16384;
   t_fine = t_var1 + t_var2;
-  pointer->bme280_temperature = (t_fine * 5 + 128) >> 8;
+  pointer->bme280_temperature = (t_fine * 5 + 128) / 256;
+
   // get pressure next
-  int64_t p_var1, p_var2, p;
+  int64_t p_var1, p_var2, p_var3, p_var4;
   const uint16_t dig_P1 = pointer->bme280_pressure_coeff_1;
   const int16_t dig_P2 = pointer->bme280_pressure_coeffs[0];
   const int16_t dig_P3 = pointer->bme280_pressure_coeffs[1];
@@ -156,22 +156,24 @@ void iic_mux_refresh(iic_mux_t *pointer) {
   const int16_t dig_P7 = pointer->bme280_pressure_coeffs[5];
   const int16_t dig_P8 = pointer->bme280_pressure_coeffs[6];
   const int16_t dig_P9 = pointer->bme280_pressure_coeffs[7];
+  // https://github.com/boschsensortec/BME280_SensorAPI/blob/c90d419492e26dd95586598a794e65eb2760753a/bme280.c#L1281
   p_var1 = ((int64_t)t_fine) - 128000;
   p_var2 = p_var1 * p_var1 * (int64_t)dig_P6;
-  p_var2 = p_var2 + ((p_var1 * (int64_t)dig_P5) << 17);
-  p_var2 = p_var2 + (((int64_t)dig_P4) << 35);
-  p_var1 = ((p_var1 * p_var1 * (int64_t)dig_P3) >> 8) +
-           ((p_var1 * (int64_t)dig_P2) << 12);
-  p_var1 = (((((int64_t)1) << 47) + p_var1)) * ((int64_t)dig_P1) >> 33;
+  p_var2 = p_var2 + ((p_var1 * (int64_t)dig_P5) * 131072);
+  p_var2 = p_var2 + (((int64_t)dig_P4) * 34359738368);
+  p_var1 = ((p_var1 * p_var1 * (int64_t)dig_P3) / 256) +
+           ((p_var1 * ((int64_t)dig_P2) * 4096));
+  p_var3 = ((int64_t)1) * 140737488355328;
+  p_var1 = (p_var3 + p_var1) * ((int64_t)dig_P1) / 8589934592;
   if (p_var1 != 0) {
-    p = 1048576 - adc_P;
-    p = (((p << 31) - p_var2) * 3125) / p_var1;
-    p_var1 = (((int64_t)dig_P9) * (p >> 13) * (p >> 13)) >> 25;
-    p_var2 = (((int64_t)dig_P8) * p) >> 19;
-    p = ((p + p_var1 + p_var2) >> 8) + (((int64_t)dig_P7) << 4);
-    pointer->bme280_pressure = (uint32_t)p;
+    p_var4 = 1048576 - adc_P;
+    p_var4 = (((p_var4 * (int64_t)2147483648) - p_var2) * 3125) / p_var1;
+    p_var1 = (((int64_t)dig_P9) * (p_var4 / 8192) * (p_var4 / 8192)) / 33554432;
+    p_var2 = (((int64_t)dig_P8) * p_var4) / 524288;
+    p_var4 = ((p_var4 + p_var1 + p_var2) / 256) + (((int64_t)dig_P7) * 16);
+    pointer->bme280_pressure = (uint32_t)(((p_var4 / 2) * 100) / 128);
   } else {
-    pointer->bme280_pressure = 0;
+    ESP_LOGI(TAG, "Read an invalid pressure from BME280");
   }
 #endif
 }
