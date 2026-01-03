@@ -12,11 +12,13 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "include/weather_gps.hpp"
+#include "include/weather_i2cmux.hpp"
 #include "include/weather_logging.hpp"
 #include "include/weather_trace.hpp"
 #include <chrono>
 #include <cstdlib>
 #include <format>
+#include <sys/select.h>
 #include <thread>
 using namespace weather;
 
@@ -30,18 +32,60 @@ extern "C" void app_main() {
     loggers.log(TAG, logging::severity::information,
                 "Weather meters initialized successfully.");
 
-    gps::service &gps = gps::service::get_instance();
+    std::thread{[]() {
+      i2cmux::service &i2c = i2cmux::service::get_instance();
+      while (true) {
+        i2c.refresh();
+        std::this_thread::sleep_for(std::chrono::milliseconds(15000));
+      }
+    }}.detach();
 
+    gps::service &gps = gps::service::get_instance();
+    bool has_fix = false;
+    time_t last_time_set = 0;
     while (true) {
       weather::gps::sentence *sentence = gps.try_get_sentence();
       if (sentence != nullptr) {
-        if (sentence->get_type() == gps::sentence_t::gga) {
+        switch (sentence->get_type()) {
+        case gps::sentence_t::gga: {
           auto gga = dynamic_cast<gps::sentence_gga *>(sentence);
-          loggers.log(TAG, logging::severity::information,
-                      "Received time: ", std::format("{:02}", gga->hours),
-                      ":", std::format("{:02}", gga->minutes), ":",
-                      std::format("{:02}", gga->seconds),
-                      ", fix type: ", gps::get_quality_name(gga->quality));
+          if (!has_fix && gga->is_checksum_valid &&
+              gga->quality != gps::quality_indicator_t::invalid) {
+            logging::group::get_instance().log(
+                TAG, logging::severity::information, "We have a GPS fix");
+            has_fix = true;
+          }
+          break;
+        }
+        case gps::sentence_t::rmc: {
+          auto rmc = dynamic_cast<gps::sentence_rmc *>(sentence);
+          if (has_fix && rmc->is_checksum_valid &&
+              (last_time_set == 0 || time(nullptr) > (last_time_set + 30))) {
+            logging::group::get_instance().log(
+                TAG, logging::severity::information,
+                "Setting time of day to UTC: ",
+                std::format("{:04}/{:02}/{:02} {:02}:{:02}:{:02}",
+                            static_cast<U16>(rmc->years) + 2000, rmc->months,
+                            rmc->days, rmc->hours, rmc->minutes, rmc->seconds));
+
+            struct tm time;
+            time.tm_year = rmc->years + 100;
+            time.tm_mon = rmc->months - 1;
+            time.tm_mday = rmc->days;
+
+            time.tm_hour = rmc->hours;
+            time.tm_min = rmc->minutes;
+            time.tm_sec = rmc->seconds;
+
+            last_time_set = mktime(&time);
+            const struct timeval tval = {.tv_sec = last_time_set, .tv_usec = 0};
+            settimeofday(&tval, nullptr);
+          }
+          break;
+        }
+        default: {
+          break;
+        }
         }
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(10));

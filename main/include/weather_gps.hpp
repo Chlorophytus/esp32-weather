@@ -76,13 +76,13 @@ struct sentence_gga : sentence {
   virtual sentence_t get_type() const override;
 
   // Precision is 1/10000 of a degree, negative if west/south
-  S32 latitude, longitude;
+  // S32 latitude, longitude;
 
   // Precision is 1/10 of a meter
-  S32 altitude, wgs84_height;
+  // S32 altitude, wgs84_height;
 
-  U16 reference_station_id;
-  U8 hours, minutes, seconds, centiseconds, satellites_used;
+  // U16 reference_station_id;
+  U8 hours, minutes, seconds, centiseconds; //, centiseconds, satellites_used;
   quality_indicator_t quality = quality_indicator_t::unknown;
 };
 struct sentence_gll : sentence {
@@ -104,6 +104,8 @@ struct sentence_rmc : sentence {
   /// @brief Get the type of this sentence
   /// @return The type of this sentence
   virtual sentence_t get_type() const override;
+
+  U8 hours, minutes, seconds, years, months, days;
 };
 struct sentence_vtg : sentence {
   /// @brief Get the type of this sentence

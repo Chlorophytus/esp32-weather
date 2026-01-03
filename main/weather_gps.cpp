@@ -1,3 +1,4 @@
+// Copyright (c) 2023-2026 Roland Metivier <metivier.roland@chlorophyt.us>
 //
 // Permission to use, copy, modify, and distribute this software for any
 // purpose with or without fee is hereby granted, provided that the above
@@ -149,17 +150,10 @@ bool handle_checksum(const std::string_view &raw) {
   for (size_t i = 1; i < check_at; i++) {
     my_check ^= raw[i];
   }
-  const bool is_valid = my_check == check;
 
-  logging::group::get_instance().log(
-      TAG, logging::severity::information, "with checksum ",
-      std::format("{:02x}", check), ", valid?: ", is_valid);
-
-  return is_valid;
+  return my_check == check;
 }
 gps::sentence *handle_gga(const std::string_view &raw) {
-  logging::group::get_instance().log(TAG, logging::severity::information,
-                                     "GGA: ", raw);
   gps::sentence_gga *pointer = new gps::sentence_gga;
   pointer->is_checksum_valid = handle_checksum(raw);
 
@@ -278,7 +272,126 @@ gps::sentence *handle_gga(const std::string_view &raw) {
 gps::sentence *handle_gll(const std::string_view &raw) { return nullptr; }
 gps::sentence *handle_gsa(const std::string_view &raw) { return nullptr; }
 gps::sentence *handle_gsv(const std::string_view &raw) { return nullptr; }
-gps::sentence *handle_rmc(const std::string_view &raw) { return nullptr; }
+gps::sentence *handle_rmc(const std::string_view &raw) {
+  gps::sentence_rmc *pointer = new gps::sentence_rmc;
+  pointer->is_checksum_valid = handle_checksum(raw);
+
+  auto cursor = 0;
+  for (auto fsm = 0; fsm < 12; fsm++) {
+    switch (fsm) {
+    case 0: {
+      break;
+    }
+    case 1: {
+      // HOURS
+      U8 nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 2) {
+        throw std::runtime_error{"bad RMC time conversion (tens of hours)"};
+      }
+      pointer->hours = nybble * 10;
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 9) {
+        throw std::runtime_error{"bad RMC time conversion (ones of hours)"};
+      }
+      pointer->hours += nybble;
+      // MINUTES
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 6) {
+        throw std::runtime_error{"bad RMC time conversion (tens of minutes)"};
+      }
+      pointer->minutes = nybble * 10;
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 9) {
+        throw std::runtime_error{"bad RMC time conversion (ones of minutes)"};
+      }
+      pointer->minutes += nybble;
+      // SECONDS
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 6) {
+        throw std::runtime_error{"bad RMC time conversion (tens of seconds)"};
+      }
+      pointer->seconds = nybble * 10;
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 9) {
+        throw std::runtime_error{"bad RMC time conversion (ones of seconds)"};
+      }
+      pointer->seconds += nybble;
+      break;
+    }
+    case 2: {
+      break;
+    }
+    case 3: {
+      break;
+    }
+    case 4: {
+      break;
+    }
+    case 5: {
+      break;
+    }
+    case 6: {
+      break;
+    }
+    case 7: {
+      break;
+    }
+    case 8: {
+      break;
+    }
+    case 9: {
+      // DAYS
+      U8 nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 3) {
+        throw std::runtime_error{"bad RMC time conversion (tens of days)"};
+      }
+      pointer->days = nybble * 10;
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 9) {
+        throw std::runtime_error{"bad RMC time conversion (ones of days)"};
+      }
+      pointer->days += nybble;
+      // MONTHS
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 1) {
+        throw std::runtime_error{"bad RMC time conversion (tens of months)"};
+      }
+      pointer->months = nybble * 10;
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 9) {
+        throw std::runtime_error{"bad RMC time conversion (ones of months)"};
+      }
+      pointer->months += nybble;
+      // YEARS
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 9) {
+        throw std::runtime_error{"bad RMC time conversion (tens of years)"};
+      }
+      pointer->years = nybble * 10;
+      nybble = char_to_nybble(raw[cursor++]);
+      if (nybble > 9) {
+        throw std::runtime_error{"bad RMC time conversion (ones of years)"};
+      }
+      pointer->years += nybble;
+      break;
+      break;
+    }
+    case 10: {
+      break;
+    }
+    case 11: {
+      break;
+    }
+    default: {
+      throw std::runtime_error{
+          "parser state machine malfunction with RMC statement"};
+    }
+    }
+    cursor = raw.find(',', cursor) + 1;
+  }
+
+  return pointer;
+}
 gps::sentence *handle_vtg(const std::string_view &raw) { return nullptr; }
 const char *gps::get_quality_name(quality_indicator_t quality) {
   switch (quality) {
@@ -308,7 +421,13 @@ gps::sentence *gps::sentence::parse(const std::string_view &raw) {
   if (handlers.contains(raw.substr(3, 3))) {
     logging::group::get_instance().log(TAG, logging::severity::debug,
                                        "Got sentence type ", raw.substr(1, 5));
-    return handlers.at(raw.substr(3, 3))(raw);
+    gps::sentence *pointer = handlers.at(raw.substr(3, 3))(raw);
+    if (pointer != nullptr && !pointer->is_checksum_valid) {
+      logging::group::get_instance().log(
+          TAG, logging::severity::warning,
+          "encountered a GPS packet with either a bad or no checksum");
+    }
+    return pointer;
   } else {
     logging::group::get_instance().log(TAG, logging::severity::debug,
                                        "Got unknown sentence type ",
@@ -321,6 +440,7 @@ gps::sentence *gps::service::try_get_sentence() {
   if (_current_sentence != nullptr) {
     delete _current_sentence;
   }
+
   while (true) {
     int len =
         uart_read_bytes(UART_NUM_2, &_uart_ch, 1, 10 / portTICK_PERIOD_MS);
