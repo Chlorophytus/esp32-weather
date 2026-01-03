@@ -1,7 +1,0 @@
-menu "I2C Multiplexing Component"
-    config I2CMUX_BME280
-        bool "Enable BME280 Sensor"
-        default true
-        help
-            Enables the MicroMod's BME280 sensor
-endmenu
