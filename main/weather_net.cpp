@@ -136,7 +136,7 @@ void net::service::refresh() {
       status |= net::service::STATUS_MQTT_SUBSCRIBED;
     }
     if (gps::service::get_instance().has_fix() &&
-        time(nullptr) >= (_last_send + 5)) {
+        time(nullptr) >= (_last_send + 15)) {
       _last_send = time(nullptr);
       cJSON *root = cJSON_CreateObject();
       cJSON_AddNumberToObject(root, "unix_time", _last_send);
