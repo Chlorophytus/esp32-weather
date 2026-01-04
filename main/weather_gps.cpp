@@ -455,5 +455,13 @@ gps::sentence *gps::service::try_get_sentence() {
     }
   }
   _current_sentence = sentence::parse(_uart_buffer);
+
+  if(_current_sentence != nullptr && _current_sentence->get_type() == sentence_t::gga) {
+    gps::sentence_gga *gga = dynamic_cast<gps::sentence_gga *>(_current_sentence);
+    _has_fix = gga->quality != quality_indicator_t::invalid;
+  }
+
   return _current_sentence;
 }
+
+bool gps::service::has_fix() const { return _has_fix; }

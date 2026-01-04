@@ -127,6 +127,7 @@ class service {
   char _uart_ch;
   std::string _uart_buffer{};
   sentence *_current_sentence = nullptr;
+  bool _has_fix = false;
 
 public:
   /// @brief Gets the service singleton
@@ -136,6 +137,10 @@ public:
   /// @brief Checks the UART for a GPS sentence, or returns nullptr
   /// @return A pointer to a GPS sentence structure
   sentence *try_get_sentence();
+
+  /// @brief whether or not we have a GPS fix
+  /// @return true if we do
+  bool has_fix() const;
 };
 } // namespace gps
 } // namespace weather

@@ -14,7 +14,9 @@
 #include "include/weather_gps.hpp"
 #include "include/weather_i2cmux.hpp"
 #include "include/weather_logging.hpp"
+#include "include/weather_net.hpp"
 #include "include/weather_trace.hpp"
+#include "nvs_flash.h"
 #include <chrono>
 #include <cstdlib>
 #include <format>
@@ -28,6 +30,18 @@ extern "C" void app_main() {
   logging::group &loggers = logging::group::get_instance();
   try {
     loggers.listeners.emplace_back(new logging::esplog_listener());
+    loggers.log(TAG, logging::severity::information,
+                "Initializing Nonvolatile Storage");
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
+        ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+    loggers.log(TAG, logging::severity::information,
+                "Creating default event loop");
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     loggers.log(TAG, logging::severity::information,
                 "Weather meters initialized successfully.");
@@ -41,26 +55,16 @@ extern "C" void app_main() {
     }}.detach();
 
     gps::service &gps = gps::service::get_instance();
-    bool has_fix = false;
+    net::service &net = net::service::get_instance();
     time_t last_time_set = 0;
     while (true) {
       weather::gps::sentence *sentence = gps.try_get_sentence();
       if (sentence != nullptr) {
         switch (sentence->get_type()) {
-        case gps::sentence_t::gga: {
-          auto gga = dynamic_cast<gps::sentence_gga *>(sentence);
-          if (!has_fix && gga->is_checksum_valid &&
-              gga->quality != gps::quality_indicator_t::invalid) {
-            logging::group::get_instance().log(
-                TAG, logging::severity::information, "We have a GPS fix");
-            has_fix = true;
-          }
-          break;
-        }
         case gps::sentence_t::rmc: {
           auto rmc = dynamic_cast<gps::sentence_rmc *>(sentence);
-          if (has_fix && rmc->is_checksum_valid &&
-              (last_time_set == 0 || time(nullptr) > (last_time_set + 30))) {
+          if (gps.has_fix() && rmc->is_checksum_valid &&
+              (last_time_set == 0 || time(nullptr) >= (last_time_set + 30))) {
             logging::group::get_instance().log(
                 TAG, logging::severity::information,
                 "Setting time of day to UTC: ",
@@ -88,6 +92,7 @@ extern "C" void app_main() {
         }
         }
       }
+      net.refresh();
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   } catch (const std::exception &e) {

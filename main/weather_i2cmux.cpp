@@ -13,7 +13,6 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "include/weather_i2cmux.hpp"
 #include "driver/i2c_master.h"
-#include "esp_err.h"
 #include "include/weather_logging.hpp"
 #include <cstring>
 
@@ -119,6 +118,10 @@ i2cmux::service &i2cmux::service::get_instance() {
   static i2cmux::service instance;
   return instance;
 }
+
+S32 i2cmux::service::get_temperature() const { return _temperature; }
+
+U32 i2cmux::service::get_pressure() const { return _pressure; }
 
 void i2cmux::service::refresh() {
   ESP_ERROR_CHECK(

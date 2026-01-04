@@ -1,0 +1,22 @@
+menu "Weather Configuration"
+    config WEATHER_MQTT_BROKER
+        string "The URL/address of the MQTT broker to use"
+    config WEATHER_JOIN_SSID
+        string "The SSID of the Wi-Fi network to join"
+    config WEATHER_JOIN_PASSPHRASE
+        string "The passphrase of the Wi-Fi network to join"
+    choice WEATHER_WIRELESS_SECURITY
+         prompt "The Wi-Fi security level to scan and join"
+         default WEATHER_WIRELESS_SECURITY_WPA_WPA2_PSK
+         config WEATHER_WIRELESS_SECURITY_OPEN
+            bool "No security level"
+         config WEATHER_WIRELESS_SECURITY_WEP
+            bool "WEP security level"
+         config WEATHER_WIRELESS_SECURITY_WPA_PSK
+            bool "WPA security level"
+         config WEATHER_WIRELESS_SECURITY_WPA2_PSK
+            bool "WPA2 security level"
+         config WEATHER_WIRELESS_SECURITY_WPA_WPA2_PSK
+            bool "WPA/WPA2 security level"
+    endchoice
+endmenu

@@ -11,16 +11,20 @@
 // WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-#if !defined(WEATHER_HEADER_I2CMUX)
-#define WEATHER_HEADER_I2CMUX
+#if !defined(WEATHER_HEADER_NET)
+#define WEATHER_HEADER_NET
 
-#include "driver/i2c_master.h"
+#include "esp_event.h"
+#include "esp_wifi.h"
+#include "mqtt_client.h"
 #include "weather.hpp"
+#include <ctime>
 
 namespace weather {
-/// @brief Handles I2C based sensors (Bosch BME280, etc)
-namespace i2cmux {
-/// @brief The singleton I2C multiplexer service
+/// @brief Handles MQTT and connecting to Wi-Fi
+namespace net {
+
+/// @brief The singleton MQTT service
 class service {
   service();
 
@@ -29,33 +33,36 @@ class service {
   service(service &&) = delete;
   service &operator=(service &&) = delete;
 
-  
-  i2c_master_bus_config_t _i2c_config;
-  i2c_master_bus_handle_t _i2c_handle;
-  i2c_device_config_t _bme280_config;
-  i2c_master_dev_handle_t _bme280_handle;
-  U16 _dig_T1, _dig_P1;
-  S16 _dig_T2, _dig_T3, _dig_P2, _dig_P3, _dig_P4, _dig_P5, _dig_P6, _dig_P7, _dig_P8, _dig_P9;
+  esp_mqtt_client_handle_t _mqtt;
+  esp_mqtt_client_config_t _mqtt_config;
 
-  U32 _pressure;
-  S32 _temperature;
+  wifi_config_t _wifi_config;
+  wifi_init_config_t _wifi_init_config;
+  esp_event_handler_instance_t _any_id, _got_ip;
+  char _json_allocation[512];
+  time_t _last_send = 0;
+
 public:
+  /// @brief Wi-Fi status bitmask
+  U32 status;
+
+  /// @brief Wi-Fi is connected
+  constexpr const static decltype(status) STATUS_CONNECTED = 1 << 0;
+  /// @brief MQTT is connected
+  constexpr const static decltype(status) STATUS_MQTT_ONLINE = 1 << 1;
+  /// @brief MQTT is connected
+  constexpr const static decltype(status) STATUS_MQTT_SUBSCRIBED = 1 << 2;
+  /// @brief Nothing is connected
+  constexpr const static decltype(status) STATUS_NONE = 0;
+
   /// @brief Gets the service singleton
   /// @return A reference to the service singleton
   static service &get_instance();
 
-  /// @brief Updates the pressure and temperature
+  /// @brief Sends off an update of the pressure and temperature
   void refresh();
-
-  /// @brief Get the pressure in tens of pascals
-  /// @return The pressure
-  U32 get_pressure() const;
-
-  /// @brief Get the temperature in hundredths of degrees Celsius
-  /// @return The temperature
-  S32 get_temperature() const;
 };
-} // namespace i2cmux
+} // namespace net
 } // namespace weather
 
 #endif
