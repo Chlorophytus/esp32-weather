@@ -15,10 +15,14 @@
 #include "driver/i2c_master.h"
 #include "include/weather_logging.hpp"
 #include <cstring>
+#include <vector>
 
 using namespace weather;
 
 static constexpr const char *TAG = "weather_i2cmux";
+
+static constexpr const U32 MAX_ENTRIES = 10;
+static constexpr const U32 SKIP_ENTRIES_PER_LOG = 24;
 
 // GCC C++ 14.2 doesn't support bit_cast that well
 S16 to_s16(U16 from) {
@@ -109,6 +113,9 @@ i2cmux::service::service()
   logging::group::get_instance().log(TAG, logging::severity::information,
                                      "dig_P9: ", _dig_P9);
 
+  _log_pressure.reserve(MAX_ENTRIES);
+  _log_temperature.reserve(MAX_ENTRIES);
+
   // Done
   logging::group::get_instance().log(TAG, logging::severity::information,
                                      "Service initialized");
@@ -173,40 +180,37 @@ void i2cmux::service::refresh() {
   p_var1 = (p_var3 + static_cast<F64>(_dig_P2) * p_var1) / 524288.0;
   p_var1 = (1.0 + p_var1 / 32768.0) * static_cast<F64>(_dig_P1);
 
-  if(p_var1 > 0.0) {
+  if (p_var1 > 0.0) {
     pressure = 1048576.0 - static_cast<F64>(P);
     pressure = (pressure - (p_var2 / 4096.0)) * 6250.0 / p_var1;
-    p_var1 = static_cast<F64>(_dig_P9) * pressure * pressure / 2147483648.0; 
+    p_var1 = static_cast<F64>(_dig_P9) * pressure * pressure / 2147483648.0;
     p_var2 = pressure * static_cast<F64>(_dig_P8) / 32768.0;
     pressure = pressure + (p_var1 + p_var2 + static_cast<F64>(_dig_P7)) / 16.0;
     _pressure = pressure;
   }
-#if 0
-    // https://github.com/boschsensortec/BME280_SensorAPI/blob/c90d419492e26dd95586598a794e65eb2760753a/bme280.c#L1281
-  S64 p_var1, p_var2, p_var3, p_var4;
-  p_var1 = static_cast<S64>(t_fine) - 128000;
-  p_var2 = p_var1 * p_var1 * static_cast<S64>(_dig_P6);
-  p_var2 = p_var2 + ((p_var1 * static_cast<S64>(_dig_P5)) * 131072);
-  p_var2 = p_var2 + (static_cast<S64>(_dig_P4) / 34359738368);
-  p_var1 = ((p_var1 * p_var1 * static_cast<S64>(_dig_P3)) / 256) +
-           ((p_var1 * static_cast<S64>(_dig_P2) / 4096));
-  p_var3 = 140737488355328;
-  p_var1 = (p_var3 + p_var1) * static_cast<S64>(_dig_P1) / 8589934592;
-
-  if (p_var1 != 0) {
-    p_var4 = 1048576 - P;
-    p_var4 =
-        (((p_var4 * static_cast<S64>(2147483648)) - p_var2) * 3125) / p_var1;
-    p_var1 = (static_cast<S64>(_dig_P9) * (p_var4 / 8192) * (p_var4 / 8192)) /
-             33554432;
-    p_var2 = (static_cast<S64>(_dig_P8) * p_var4) / 524288;
-    p_var4 =
-        ((p_var4 + p_var1 + p_var2) / 256) + (static_cast<S64>(_dig_P7) * 16);
-    _pressure = static_cast<U32>(((p_var4 / 2) * 100) / 128);
-  }
-#endif
 
   logging::group::get_instance().log(TAG, logging::severity::information,
                                      "Got temperature of ", _temperature,
                                      " and pressure ", _pressure);
+
+  if (_log_skip == 0) {
+    _log_pressure.push_back(_pressure);
+    if (_log_pressure.size() > MAX_ENTRIES) {
+      _log_pressure.erase(_log_pressure.begin());
+    }
+
+    _log_temperature.push_back(_temperature);
+    if (_log_temperature.size() > MAX_ENTRIES) {
+      _log_temperature.erase(_log_temperature.begin());
+    }
+  }
+  _log_skip++;
+  _log_skip %= SKIP_ENTRIES_PER_LOG;
+}
+
+const std::vector<U32> &i2cmux::service::get_pressure_log() const {
+  return _log_pressure;
+}
+const std::vector<S32> &i2cmux::service::get_temperature_log() const {
+  return _log_temperature;
 }

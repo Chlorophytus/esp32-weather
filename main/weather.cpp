@@ -18,7 +18,9 @@
 #include "include/weather_trace.hpp"
 #include "nvs_flash.h"
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <format>
 #include <sys/select.h>
 #include <thread>
@@ -46,10 +48,12 @@ extern "C" void app_main() {
     loggers.log(TAG, logging::severity::information,
                 "Weather meters initialized successfully.");
 
-    std::thread{[]() {
+    std::thread{[] {
       i2cmux::service &i2c = i2cmux::service::get_instance();
+
       while (true) {
         i2c.refresh();
+
         std::this_thread::sleep_for(std::chrono::milliseconds(15000));
       }
     }}.detach();

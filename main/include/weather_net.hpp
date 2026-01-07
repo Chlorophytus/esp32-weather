@@ -39,7 +39,7 @@ class service {
   wifi_config_t _wifi_config;
   wifi_init_config_t _wifi_init_config;
   esp_event_handler_instance_t _any_id, _got_ip;
-  char _json_allocation[512];
+  char _json_allocation[2048];
   time_t _last_send = 0;
 
 public:

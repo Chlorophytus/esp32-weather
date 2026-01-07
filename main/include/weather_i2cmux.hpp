@@ -16,6 +16,7 @@
 
 #include "driver/i2c_master.h"
 #include "weather.hpp"
+#include <vector>
 
 namespace weather {
 /// @brief Handles I2C based sensors (Bosch BME280, etc)
@@ -29,22 +30,27 @@ class service {
   service(service &&) = delete;
   service &operator=(service &&) = delete;
 
-  
   i2c_master_bus_config_t _i2c_config;
   i2c_master_bus_handle_t _i2c_handle;
   i2c_device_config_t _bme280_config;
   i2c_master_dev_handle_t _bme280_handle;
   U16 _dig_T1, _dig_P1;
-  S16 _dig_T2, _dig_T3, _dig_P2, _dig_P3, _dig_P4, _dig_P5, _dig_P6, _dig_P7, _dig_P8, _dig_P9;
+  S16 _dig_T2, _dig_T3, _dig_P2, _dig_P3, _dig_P4, _dig_P5, _dig_P6, _dig_P7,
+      _dig_P8, _dig_P9;
 
   U32 _pressure;
   S32 _temperature;
+  U32 _log_skip = 0;
+
+  std::vector<U32> _log_pressure{};
+  std::vector<S32> _log_temperature{};
+
 public:
   /// @brief Gets the service singleton
   /// @return A reference to the service singleton
   static service &get_instance();
 
-  /// @brief Updates the pressure and temperature
+  /// @brief Updates the pressure, temperature, and logs
   void refresh();
 
   /// @brief Get the pressure in tens of pascals
@@ -54,6 +60,14 @@ public:
   /// @brief Get the temperature in hundredths of degrees Celsius
   /// @return The temperature
   S32 get_temperature() const;
+
+  /// @brief Get the pressure log reference
+  /// @return A constant reference to the pressure log
+  const std::vector<U32> &get_pressure_log() const;
+
+  /// @brief Get the temperature log reference
+  /// @return A constant reference to the temperature log
+  const std::vector<S32> &get_temperature_log() const;
 };
 } // namespace i2cmux
 } // namespace weather

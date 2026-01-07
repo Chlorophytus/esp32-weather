@@ -2,7 +2,7 @@
 Personal weather station. Tested with ESP-IDF release v5.5.2.
 
 ## To Do
-- Interface with BME280 (I2C: pin 21 is SDA, pin 22 is SCL)
+- Interface with SD card (5 is SPI_CS, 18 is SPI_SCK, 23 is COPI (input to SD card), 19 is CIPO (output from SD card))
 
 ## Components
 

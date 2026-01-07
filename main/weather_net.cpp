@@ -146,6 +146,20 @@ void net::service::refresh() {
       cJSON_AddNumberToObject(
           weather_data, "temperature",
           i2cmux::service::get_instance().get_temperature());
+      cJSON *previous_data = cJSON_AddObjectToObject(root, "previous");
+      cJSON *previous_pressure =
+          cJSON_AddArrayToObject(previous_data, "pressure");
+      for (const auto &pressure :
+           i2cmux::service::get_instance().get_pressure_log()) {
+        cJSON_AddItemToArray(previous_pressure, cJSON_CreateNumber(pressure));
+      }
+      cJSON *previous_temperature =
+          cJSON_AddArrayToObject(previous_data, "temperature");
+      for (const auto &temperature :
+           i2cmux::service::get_instance().get_temperature_log()) {
+        cJSON_AddItemToArray(previous_temperature,
+                             cJSON_CreateNumber(temperature));
+      }
       bzero(_json_allocation, sizeof(_json_allocation));
       cJSON_PrintPreallocated(root, _json_allocation,
                               sizeof(_json_allocation) - 1, 0);
