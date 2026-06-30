@@ -1,5 +1,5 @@
 # ESP32 Weather
-Personal weather station. Tested with ESP-IDF release v5.5.2.
+Personal weather station. Tested with ESP-IDF release v6.0.x.
 
 ## To Do
 - Interface with SD card (5 is SPI_CS, 18 is SPI_SCK, 23 is COPI (input to SD card), 19 is CIPO (output from SD card))

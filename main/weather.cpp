@@ -66,7 +66,7 @@ extern "C" void app_main() {
       if (sentence != nullptr) {
         switch (sentence->get_type()) {
         case gps::sentence_t::rmc: {
-          auto rmc = dynamic_cast<gps::sentence_rmc *>(sentence);
+          auto rmc = static_cast<gps::sentence_rmc *>(sentence);
           if (gps.has_fix() && rmc->is_checksum_valid &&
               (last_time_set == 0 || time(nullptr) >= (last_time_set + 30))) {
             logging::group::get_instance().log(

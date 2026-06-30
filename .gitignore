@@ -4,3 +4,4 @@ sdkconfig.old
 *.pem
 .vscode
 .cache
+managed_components

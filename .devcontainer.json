@@ -1,0 +1,20 @@
+// Based off this: https://gist.github.com/bwrrp/dc2fe8926dfe8860da21cb87ba91aeaa
+{
+    "name": "ESP32 Weather",
+    "workspaceMount": "source=${localWorkspaceFolder}/,target=/workspace,type=bind",
+    "workspaceFolder": "/workspace",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools-extension-pack",
+                "espressif.esp-idf-extension"
+            ]
+        }
+    },
+    "runArgs": [
+        "--device=/dev/ttyUSB0"
+    ]
+}

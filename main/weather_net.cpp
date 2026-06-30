@@ -12,7 +12,6 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "include/weather_net.hpp"
-#include "cJSON.h"
 #include "esp_err.h"
 #include "esp_netif_ip_addr.h"
 #include "esp_wifi.h"
@@ -22,7 +21,9 @@
 #include "include/weather_logging.hpp"
 #include "mqtt_client.h"
 #include "sdkconfig.h"
+#include <ArduinoJson.h>
 #include <cstring>
+#include <sstream>
 #include <strings.h>
 
 using namespace weather;
@@ -138,34 +139,31 @@ void net::service::refresh() {
     if (gps::service::get_instance().has_fix() &&
         time(nullptr) >= (_last_send + 15)) {
       _last_send = time(nullptr);
-      cJSON *root = cJSON_CreateObject();
-      cJSON_AddNumberToObject(root, "unix_time", _last_send);
-      cJSON *weather_data = cJSON_AddObjectToObject(root, "data");
-      cJSON_AddNumberToObject(weather_data, "pressure",
-                              i2cmux::service::get_instance().get_pressure());
-      cJSON_AddNumberToObject(
-          weather_data, "temperature",
-          i2cmux::service::get_instance().get_temperature());
-      cJSON *previous_data = cJSON_AddObjectToObject(root, "previous");
-      cJSON *previous_pressure =
-          cJSON_AddArrayToObject(previous_data, "pressure");
-      for (const auto &pressure :
-           i2cmux::service::get_instance().get_pressure_log()) {
-        cJSON_AddItemToArray(previous_pressure, cJSON_CreateNumber(pressure));
+
+      JsonDocument root;
+      const auto &plog = i2cmux::service::get_instance().get_pressure_log();
+      const auto &tlog = i2cmux::service::get_instance().get_temperature_log();
+
+      root["unix_time"] = _last_send;
+      root["data"]["pressure"] =
+          i2cmux::service::get_instance().get_pressure();
+      root["data"]["temperature"] =
+          i2cmux::service::get_instance().get_temperature();
+
+      for (auto i = 0; i < plog.size(); i++) {
+        root["previous"]["pressure"][i] = plog[i];
       }
-      cJSON *previous_temperature =
-          cJSON_AddArrayToObject(previous_data, "temperature");
-      for (const auto &temperature :
-           i2cmux::service::get_instance().get_temperature_log()) {
-        cJSON_AddItemToArray(previous_temperature,
-                             cJSON_CreateNumber(temperature));
+      for (auto i = 0; i < tlog.size(); i++) {
+        root["previous"]["temperature"][i] = tlog[i];
       }
-      bzero(_json_allocation, sizeof(_json_allocation));
-      cJSON_PrintPreallocated(root, _json_allocation,
-                              sizeof(_json_allocation) - 1, 0);
-      esp_mqtt_client_publish(_mqtt, "weather/status", _json_allocation,
-                              strlen(_json_allocation), 0, 0);
-      cJSON_Delete(root);
+
+      std::stringstream json;
+      serializeJson(root, json);
+
+      const std::string &jstr = json.str();
+
+      esp_mqtt_client_publish(_mqtt, "weather/status", jstr.c_str(),
+                              jstr.size(), 0, 0);
     }
   }
 }
