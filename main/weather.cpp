@@ -88,6 +88,8 @@ extern "C" void app_main() {
             last_time_set = mktime(&time);
             const struct timeval tval = {.tv_sec = last_time_set, .tv_usec = 0};
             settimeofday(&tval, nullptr);
+
+            net.flag_gps_fixed();
           }
           break;
         }

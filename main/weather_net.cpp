@@ -23,12 +23,13 @@
 #include "sdkconfig.h"
 #include <ArduinoJson.h>
 #include <cstring>
-#include <sstream>
 #include <strings.h>
 
 using namespace weather;
 
 static constexpr const char *TAG = "weather_net";
+
+static constexpr const U32 WEATHER_JSON_SIZE = 1024;
 
 void event_handler(void *user_data, esp_event_base_t event_base, S32 event_id,
                    void *event_data) {
@@ -136,7 +137,7 @@ void net::service::refresh() {
       esp_mqtt_client_subscribe(_mqtt, "weather/status", 0);
       status |= net::service::STATUS_MQTT_SUBSCRIBED;
     }
-    if (gps::service::get_instance().has_fix() &&
+    if (((status & net::service::STATUS_GPS_FIX_GET) != 0) &&
         time(nullptr) >= (_last_send + 15)) {
       _last_send = time(nullptr);
 
@@ -145,8 +146,7 @@ void net::service::refresh() {
       const auto &tlog = i2cmux::service::get_instance().get_temperature_log();
 
       root["unix_time"] = _last_send;
-      root["data"]["pressure"] =
-          i2cmux::service::get_instance().get_pressure();
+      root["data"]["pressure"] = i2cmux::service::get_instance().get_pressure();
       root["data"]["temperature"] =
           i2cmux::service::get_instance().get_temperature();
 
@@ -157,13 +157,14 @@ void net::service::refresh() {
         root["previous"]["temperature"][i] = tlog[i];
       }
 
-      std::stringstream json;
-      serializeJson(root, json);
+      char jstr[WEATHER_JSON_SIZE];
+      size_t size = serializeJson(root, jstr, WEATHER_JSON_SIZE);
 
-      const std::string &jstr = json.str();
-
-      esp_mqtt_client_publish(_mqtt, "weather/status", jstr.c_str(),
-                              jstr.size(), 0, 0);
+      esp_mqtt_client_publish(_mqtt, "weather/status", jstr, size, 0, 0);
     }
   }
+}
+
+void net::service::flag_gps_fixed() {
+  status |= net::service::STATUS_GPS_FIX_GET;
 }

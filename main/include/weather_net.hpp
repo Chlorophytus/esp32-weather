@@ -52,12 +52,17 @@ public:
   constexpr const static decltype(status) STATUS_MQTT_ONLINE = 1 << 1;
   /// @brief MQTT is connected
   constexpr const static decltype(status) STATUS_MQTT_SUBSCRIBED = 1 << 2;
+  /// @brief GPS previously had a fix
+  constexpr const static decltype(status) STATUS_GPS_FIX_GET = 1 << 3;
   /// @brief Nothing is connected
   constexpr const static decltype(status) STATUS_NONE = 0;
 
   /// @brief Gets the service singleton
   /// @return A reference to the service singleton
   static service &get_instance();
+
+  /// @brief Sets the GPS fix flag
+  void flag_gps_fixed();
 
   /// @brief Sends off an update of the pressure and temperature
   void refresh();
